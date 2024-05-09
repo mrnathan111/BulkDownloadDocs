@@ -1,5 +1,5 @@
 # BulkDownloadOSSDocs
-
+Collaboration with Jeffy Jahfar Poozhithara
 ## 1. To download data from CVE, there are two steps. First, you download a list of all products under a vendor. Second, the program uses that list to download all vulnerabilities in those products. 
 
 ### A. To download the list of products by a vendor, execute the Main method of com/uw/css/cve/ProductListCreator.java
