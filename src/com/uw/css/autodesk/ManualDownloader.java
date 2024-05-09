@@ -1,4 +1,4 @@
-package com.uw.css.graphicsmagick;
+package com.uw.css.autodesk;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -12,8 +12,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 public class ManualDownloader {
-    public static String BASE_URL="http://www.graphicsmagick.org/README.html#documentation";
-    public static String DOCUMENTATION_DIR="./output/documentation/graphicsmagick/";
+    public static String BASE_URL="https://help.autodesk.com/";
+    public static String DOCUMENTATION_DIR="./output/documentation/autodesk/";
 
     public static void main(String[] args) {
         getPackagesList();
@@ -23,17 +23,26 @@ public class ManualDownloader {
         Document doc;
         Integer count = 0;
         Integer failed = 0;
-            try {
-                doc = Jsoup.connect(BASE_URL+"/docs/").get();
-                String doctext = doc.select("div[class=document]").text();
-                String productName = "GraphicsMagick";
-                exportTextContentToTxtFile(doctext,productName);
-                count+=1;
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                failed+=1;
+        try {
+            doc = Jsoup.connect(BASE_URL).get();
+            Elements elements = doc.select("div[id=ui-x-p-product-list] li > a:first-child");
+            for(Element element: elements){
+                try{
+                    String url = element.attr("href");
+                    String productName = sanitizeProductName(element.text());
+                    System.out.println("*****"+productName+"*****");
+                    String doctext = Jsoup.connect(BASE_URL + url).get().select("div[class=mw-bodytext]").get(0).text();
+                    exportTextContentToTxtFile(doctext, productName);
+                    count+=1;
+                }catch (Exception e){
+                    e.printStackTrace();
+                    failed+=1;
+                }
             }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
 
         System.out.println("Downloaded "+count);
@@ -68,29 +77,5 @@ public class ManualDownloader {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public static String post2Parse(String command) {
-
-        String outputString;
-
-        System.out.println(command);
-        String result="";
-        Process curlProc;
-        try {
-            curlProc = Runtime.getRuntime().exec(command);
-
-            DataInputStream curlIn = new DataInputStream(
-                    curlProc.getInputStream());
-
-            while ((outputString = curlIn.readLine()) != null) {
-                result+=outputString;
-            }
-
-        } catch (IOException e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
-        }
-        return result;
     }
 }

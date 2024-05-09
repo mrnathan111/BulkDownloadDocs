@@ -180,6 +180,7 @@ public class ManualDownloader {
     }
 
     public static void exportTextContentToTxtFile(String text,String product) throws IOException {
+        Files.createDirectories(Paths.get("./output/documentation/"));
         File directory = new File(DOCUMENTATION_DIR);
         if (! directory.exists()){
             directory.mkdir();
@@ -189,7 +190,8 @@ public class ManualDownloader {
         out.close();
     }
 
-    public static void exportContentToTxtFile(String manualUrl,String product){
+    public static void exportContentToTxtFile(String manualUrl,String product) throws IOException {
+        Files.createDirectories(Paths.get("./output/documentation/"));
         File directory = new File(DOCUMENTATION_DIR);
         if (! directory.exists()){
             directory.mkdir();

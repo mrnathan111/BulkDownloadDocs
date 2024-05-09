@@ -26,50 +26,23 @@ public class ManualDownloader {
             try {
                 doc = Jsoup.connect(BASE_URL+"/docs/").get();
                 Elements elements = doc.select("div[class=\"homepage-section homepage-section-user-docs\"] a");
-                for (int i = 0; i < elements.size(); i++) {
-                    Element element = elements.get(i);
-                    {
-                        try{
-                            String url = element.attr("href");
-                            String productName = sanitizeProductName(element.select("h3").text());
-                            System.out.println("*****"+productName+"*****");
-                            url = url.replaceFirst("..",BASE_URL);
-                            Elements navbar = Jsoup.connect(url).get().select("ul[class=nav-list] li[data-depth=3] a");
-                            String doctext = "";
-                            if(navbar.size()==0){
-                                navbar = Jsoup.connect(url).get().select("ul[class=nav-list] li[data-depth=1] a");
-                                for(Element navitem: navbar){
-                                    try {
-                                        doctext += Jsoup.connect(url + navitem.attr("href")).get().select("article[class=doc]").text();
-                                    }catch (Exception e){
-
-                                    }
-                                }
-                            }else{
-                                for(Element navitem: navbar){
-                                    try {
-                                        doctext += Jsoup.connect(url + navitem.attr("href")).get().select("article[class=doc]").text();
-                                    }catch (Exception e){
-
-                                    }
-                                }
-                            }
-
-                            exportTextContentToTxtFile(doctext,productName);
-                            count+=1;
-                        }catch (Exception e){
-                            e.printStackTrace();
-                            failed+=1;
-                        }
-
+                for(Element element: elements){
+                    try{
+                        String url = element.attr("href");
+                        String productName = sanitizeProductName(element.select("h3").text());
+                        System.out.println("*****"+productName+"*****");
+                        url = url.replaceFirst("..",BASE_URL);
+                        String doctext = Jsoup.connect(url).get().select("div[class=content]").get(0).text();
+                        exportTextContentToTxtFile(doctext, productName);
+                        count+=1;
+                    }catch (Exception e){
+                        e.printStackTrace();
+                        failed+=1;
                     }
                 }
-
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
-
         System.out.println("Downloaded "+count);
         System.out.println("Failed "+failed);
     }
@@ -79,6 +52,7 @@ public class ManualDownloader {
     }
 
     public static void exportTextContentToTxtFile(String text,String product) throws IOException {
+        Files.createDirectories(Paths.get("./output/documentation/"));
         File directory = new File(DOCUMENTATION_DIR);
         if (! directory.exists()){
             directory.mkdir();
@@ -88,7 +62,8 @@ public class ManualDownloader {
         out.close();
     }
 
-    public static void exportContentToTxtFile(String manualUrl,String product){
+    public static void exportContentToTxtFile(String manualUrl,String product) throws IOException {
+        Files.createDirectories(Paths.get("./output/documentation/"));
         File directory = new File(DOCUMENTATION_DIR);
         if (! directory.exists()){
             directory.mkdir();

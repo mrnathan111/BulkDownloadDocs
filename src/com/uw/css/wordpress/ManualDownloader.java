@@ -1,0 +1,84 @@
+package com.uw.css.wordpress;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import java.io.*;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+
+public class ManualDownloader {
+    public static String BASE_URL = "https://wordpress.org/documentation/"; //Starting URL to start scraping
+    public static String DOCUMENTATION_DIR = "./output/documentation/wordpress/"; //Where .txt files go
+    public static StringBuilder allTextContent = new StringBuilder(); //Contains all the text for the product, appended as more docs are found
+
+
+    public static void main(String[] args) {
+        getPackagesList();
+    }
+
+    private static void getPackagesList() {
+        Document doc;
+        Integer count = 0;
+        Integer failed = 0;
+        try {
+            doc = Jsoup.connect(BASE_URL).get(); //connect to the starting URL
+            Elements mainList = doc.select("div[class='entry-content wp-block-post-content is-layout-constrained wp-container-core-post-content-is-layout-1 wp-block-post-content-is-layout-constrained'] h2 > a");
+            for (Element elem1 : mainList) { //main 4 categories of products
+                try {
+                    String url = elem1.attr("href"); //url of the list item
+                    Document doc2 = Jsoup.connect(url).get(); //connect to that new link
+                    Elements secList = doc2.select("div[class='entry-content alignfull wp-block-post-content is-layout-constrained wp-container-core-post-content-is-layout-1 wp-block-post-content-is-layout-constrained'] p > a");
+                    for (Element elem2: secList) { //next nested list
+                        url = elem2.attr("href"); //url of the new list item
+                        Document doc3 = Jsoup.connect(url).get(); //connect to that url
+                        Elements thirdList = doc3.select("div[class='wp-block-query alignwide is-layout-flow wp-block-query-is-layout-flow'] a");
+                        for (Element elem3: thirdList) { //last nested list of links
+                            url = elem3.attr("href");
+                            System.out.println("*****" + elem3.text() + "*****");
+                            Document doc4 = Jsoup.connect(url).get(); //Connect to the documentation page
+                            String redirectedUrl = doc4.location(); //gets the final url
+                            String doctext;
+                            if (redirectedUrl.contains("developer.wordpress")) { //when href link is redirected to developer.wordpress.com....
+                                doctext = Jsoup.connect(url).get().select("div[class='entry-content wp-block-post-content is-layout-flow wp-block-post-content-is-layout-flow']").get(0).text();
+                            }
+                            else {
+                                doctext = Jsoup.connect(url).get().select("div[class='entry-content wp-block-post-content is-layout-constrained wp-block-post-content-is-layout-constrained']").get(0).text();
+                            }
+                            allTextContent.append(doctext).append("\n").append("\n");
+                            count++;
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    failed += 1;
+                }
+            }
+            exportTextContentToTxtFile();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Downloaded " + count);
+        System.out.println("Failed " + failed);
+    }
+
+    public static String sanitizeProductName(String s) { //Changes string characters that cannot go into a .txt file name
+        return s.replaceAll("/", "_").replaceAll("\\?", "_");
+    }
+
+    public static void exportTextContentToTxtFile() throws IOException { //creates the .txt file
+        Files.createDirectories(Paths.get("./output/documentation/"));
+        File directory = new File(DOCUMENTATION_DIR);
+        if (!directory.exists()) {
+            directory.mkdir();
+        }
+        PrintWriter out = new PrintWriter(new FileWriter(DOCUMENTATION_DIR + "wordpress.txt"));
+        out.println(allTextContent.toString());
+        out.close();
+    }
+}

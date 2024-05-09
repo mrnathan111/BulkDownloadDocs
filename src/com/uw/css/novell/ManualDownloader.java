@@ -14,6 +14,8 @@ import java.nio.file.StandardCopyOption;
 public class ManualDownloader {
     public static String BASE_URL="https://www.novell.com";
     public static String DOCUMENTATION_DIR="./output/documentation/novell/";
+    public static StringBuilder allTextContent = new StringBuilder(); //Contains all the text for the product, appended as more docs are found
+
 
     public static void main(String[] args) {
         getPackagesList();
@@ -30,21 +32,27 @@ public class ManualDownloader {
             for(Element element: elements){
                 try{
                     String url = element.attr("href");
-                    String productName = sanitizeProductName(element.text());
-                    System.out.println("*****"+productName+"*****");
-                    Document documentation = Jsoup.connect(BASE_URL+"/documentation/"+url).get();
-                    Elements links = documentation.select("a[class=htmlpdf]");
-                    for(Element link:links){
-                        String linkUrl = link.attr("href");
-                        if(linkUrl.endsWith(".pdf")){
-                            if(linkUrl.contains("admin") || linkUrl.contains("Admin")){
-                                exportContentToTxtFile(documentation.baseUri()+linkUrl,productName);
-                                break;
+                    if (!url.contains("www")){
+                        String productName = sanitizeProductName(element.text());
+                        System.out.println("*****" + productName + "*****");
+                        Document documentation = Jsoup.connect(BASE_URL + "/documentation/" + url).get();
+                        Elements links = documentation.select("a[class=htmlpdf]");
+                        for (Element link : links) {
+                            try {
+                                String linkUrl = link.attr("href");
+                                if (linkUrl.endsWith(".pdf")) {
+                                    if (linkUrl.contains("admin") || linkUrl.contains("Admin")) {
+                                        exportContentToTxtFile(documentation.baseUri() + linkUrl, productName);
+                                        break;
+                                    }
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                failed += 1;
                             }
                         }
+                        count+=1;
                     }
-                    
-                    count+=1;
                 }catch (Exception e){
                     e.printStackTrace();
                     failed+=1;
@@ -64,6 +72,7 @@ public class ManualDownloader {
     }
 
     public static void exportTextContentToTxtFile(String text,String product) throws IOException {
+        Files.createDirectories(Paths.get("./output/documentation/"));
         File directory = new File(DOCUMENTATION_DIR);
         if (! directory.exists()){
             directory.mkdir();
@@ -73,7 +82,8 @@ public class ManualDownloader {
         out.close();
     }
 
-    public static void exportContentToTxtFile(String manualUrl,String product){
+    public static void exportContentToTxtFile(String manualUrl,String product) throws IOException {
+        Files.createDirectories(Paths.get("./output/documentation/"));
         File directory = new File(DOCUMENTATION_DIR);
         if (! directory.exists()){
             directory.mkdir();

@@ -22,6 +22,8 @@ public class ManualDownloader {
 
     private static void getPackagesList() {
         Document doc;
+        Integer count = 0;
+        Integer failed = 0;
         try {
             //Get Document object after parsing the html from given url.
             doc = Jsoup.connect(BASE_URL+"documentation.html").get();
@@ -32,20 +34,26 @@ public class ManualDownloader {
                 String url = element.attr("href");
                 try {
                     Document documentation = Jsoup.connect(BASE_URL + url).get();
+                    System.out.println("*****"+productName+"*****");
                     String doctext = documentation.select("div[id=page-content-wrapper]").get(0).text();
                     exportTextContentToTxtFile(doctext,productName);
-                    System.out.println("documentation downloaded for "+productName);
+                    count+=1;
+
                 }catch (Exception e){
                     e.printStackTrace();
+                    failed+=1;
                 }
             }
 
         } catch (IOException e) {
             e.printStackTrace();
         }
+        System.out.println("Downloaded "+count);
+        System.out.println("Failed "+failed);
     }
 
-    public static void exportTextContentToTxtFile(String text,String product) {
+    public static void exportTextContentToTxtFile(String text,String product) throws IOException {
+        Files.createDirectories(Paths.get("./output/documentation/"));
         File directory = new File(DOCUMENTATION_DIR);
         if (! directory.exists()){
             directory.mkdir();
@@ -60,7 +68,8 @@ public class ManualDownloader {
         }
     }
 
-    public static void exportContentToTxtFile(String manualUrl,String product){
+    public static void exportContentToTxtFile(String manualUrl,String product) throws IOException {
+        Files.createDirectories(Paths.get("./output/documentation/"));
         InputStream inputStream = null;
         try {
             inputStream = new URL(manualUrl).openStream();

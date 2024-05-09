@@ -14,6 +14,7 @@ import java.nio.file.StandardCopyOption;
 public class ManualDownloader {
     public static String BASE_URL="https://imagemagick.org";
     public static String DOCUMENTATION_DIR="./output/documentation/imagemagick/";
+    public static StringBuilder allTextContent = new StringBuilder(); //Contains all the text for the product, appended as more docs are found
 
     public static void main(String[] args) {
         getPackagesList();
@@ -26,22 +27,28 @@ public class ManualDownloader {
         try {
             //Get Document object after parsing the html from given url.
             doc = Jsoup.connect(BASE_URL+"/script/index.php").get();
-            Elements elements = doc.select("div[class=table-responsive] a");
+            Elements elements = doc.select("div[class=pre-scrollable] td a");
             for(Element element: elements){
                 try{
-                    String url = element.attr("href");
-                    String productName = sanitizeProductName(element.text());
-                    System.out.println("*****"+productName+"*****");
-                    String doctext = Jsoup.connect(BASE_URL+url).get().select("div").get(0).text();
-                    exportTextContentToTxtFile(doctext,productName);
+                    String extractedUrl = element.attr("href");
+                    if (extractedUrl.contains("Usage") || extractedUrl.contains("script")) { //ignore links to the couple of random websites
+                        System.out.println("*****" + sanitizeProductName(element.text()) + "*****");
+                        if (extractedUrl.contains("script")) { //Detects href's that leave out the baseURL
+                            String doctext = Jsoup.connect(BASE_URL + extractedUrl).get().select("div[class=magick-header]").get(0).text();
+                            allTextContent.append(doctext).append("\n").append("\n");
+                        }
+                        else if (extractedUrl.contains("Usage")) { //Detects href's that include the full url
+                            String doctext = Jsoup.connect(extractedUrl).get().select("div[class=magick-header]").get(0).text();
+                            allTextContent.append(doctext).append("\n").append("\n");
+                        }
+                    }
                     count+=1;
                 }catch (Exception e){
                     e.printStackTrace();
                     failed+=1;
                 }
-
             }
-
+            exportTextContentToTxtFile();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -53,28 +60,15 @@ public class ManualDownloader {
         return s.replaceAll("/","_");
     }
 
-    public static void exportTextContentToTxtFile(String text,String product) throws IOException {
+    public static void exportTextContentToTxtFile() throws IOException {
+        Files.createDirectories(Paths.get("./output/documentation/"));
         File directory = new File(DOCUMENTATION_DIR);
         if (! directory.exists()){
             directory.mkdir();
         }
-        PrintWriter out = new PrintWriter(new FileWriter(DOCUMENTATION_DIR+product+".txt"));
-        out.println(text);
+        PrintWriter out = new PrintWriter(new FileWriter(DOCUMENTATION_DIR+"imagemagick.txt"));
+        out.println(allTextContent.toString());
         out.close();
-    }
-
-    public static void exportContentToTxtFile(String manualUrl,String product){
-        File directory = new File(DOCUMENTATION_DIR);
-        if (! directory.exists()){
-            directory.mkdir();
-        }
-        InputStream inputStream = null;
-        try {
-            inputStream = new URL(manualUrl).openStream();
-            Files.copy(inputStream, Paths.get(DOCUMENTATION_DIR+product+".txt"), StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 }
 

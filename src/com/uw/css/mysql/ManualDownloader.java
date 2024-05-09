@@ -1,4 +1,4 @@
-package com.uw.css.debian;
+package com.uw.css.mysql;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -12,8 +12,10 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 public class ManualDownloader {
-    public static String BASE_URL="https://wiki.debian.org";
-    public static String DOCUMENTATION_DIR="./output/documentation/debian/";
+    public static String BASE_URL="https://docs.oracle.com/cd/E17952_01/";//Starting URL to start scraping
+    public static String DOCUMENTATION_DIR="./output/documentation/mysql/"; //Where .txt files go
+    public static StringBuilder allTextContent = new StringBuilder(); //Contains all the text for the product, appended as more docs are found
+
 
     public static void main(String[] args) {
         getPackagesList();
@@ -25,23 +27,21 @@ public class ManualDownloader {
         Integer failed = 0;
         try {
             //Get Document object after parsing the html from given url.
-            doc = Jsoup.connect(BASE_URL+"/Software").get();
-            Elements elements = doc.select("div[class=searchresults] a");
-            for(Element element: elements){
+            doc = Jsoup.connect(BASE_URL).get(); //connect to the starting URL
+            Elements elements = doc.select("div[class=doclist] p");
+            for(Element element: elements){ //list of link elements
                 try{
-                    String url = element.attr("href");
-                    String productName = sanitizeProductName(element.text());
+                    Elements links = element.select("a");
+                    String productName = sanitizeProductName(links.get(0).text());
                     System.out.println("*****"+productName+"*****");
-                    String doctext = Jsoup.connect(BASE_URL+url).get().select("div[id=content]").get(0).text();
-                    exportTextContentToTxtFile(doctext,productName);
+                    String pdfUrl = links.get(1).absUrl("href");
+                    exportContentToTxtFile(pdfUrl, productName);
                     count+=1;
                 }catch (Exception e){
                     e.printStackTrace();
                     failed+=1;
                 }
-
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -49,22 +49,11 @@ public class ManualDownloader {
         System.out.println("Failed "+failed);
     }
 
-    public static String sanitizeProductName(String s){
+    public static String sanitizeProductName(String s){ //Changes string characters that cannot go into a .txt file name
         return s.replaceAll("/","_");
     }
 
-    public static void exportTextContentToTxtFile(String text,String product) throws IOException {
-        Files.createDirectories(Paths.get("./output/documentation/"));
-        File directory = new File(DOCUMENTATION_DIR);
-        if (! directory.exists()){
-            directory.mkdir();
-        }
-        PrintWriter out = new PrintWriter(new FileWriter(DOCUMENTATION_DIR+product+".txt"));
-        out.println(text);
-        out.close();
-    }
-
-    public static void exportContentToTxtFile(String manualUrl,String product) throws IOException {
+    public static void exportContentToTxtFile(String manualUrl,String product) throws IOException { //creates .pdf files
         Files.createDirectories(Paths.get("./output/documentation/"));
         File directory = new File(DOCUMENTATION_DIR);
         if (! directory.exists()){
@@ -73,7 +62,7 @@ public class ManualDownloader {
         InputStream inputStream = null;
         try {
             inputStream = new URL(manualUrl).openStream();
-            Files.copy(inputStream, Paths.get(DOCUMENTATION_DIR+product+".txt"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(inputStream, Paths.get(DOCUMENTATION_DIR+product+".pdf"), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -2,6 +2,7 @@ package com.uw.css.MicroFocus;
 
 import java.io.BufferedInputStream;
 import java.io.FileOutputStream;
+import java.io.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -82,13 +83,18 @@ public class ManualDownloader {
         System.out.println("Succeeded: " + count);
     }
 
-    public static void exportContentToTxtFile(String manualUrl,String product){
+    public static void exportContentToTxtFile(String manualUrl,String product) throws IOException {
+        Files.createDirectories(Paths.get("./output/documentation/"));
+        File directory = new File(DOCUMENTATION_DIR);
+        if (! directory.exists()){
+            directory.mkdir();
+        }
         InputStream inputStream = null;
         try {
             inputStream = new URL(manualUrl).openStream();
             Files.copy(inputStream, Paths.get(DOCUMENTATION_DIR+product+".pdf"), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            //e.printStackTrace();
+            e.printStackTrace();
         }
     }
 }

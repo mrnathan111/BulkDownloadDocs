@@ -12,7 +12,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 public class ManualDownloader {
-    public static String BASE_URL="https://www.foxitsoftware.com";
+    public static String BASE_URL="https://www.foxit.com";
     public static String DOCUMENTATION_DIR="./output/documentation/foxitsoftware/";
 
     public static void main(String[] args) {
@@ -32,8 +32,9 @@ public class ManualDownloader {
                     String url = element.attr("href");
                     String productName = sanitizeProductName(element.text());
                     System.out.println("*****"+productName+"*****");
-                    String doctext = Jsoup.connect(BASE_URL+url).get().select("div[id=content]").get(0).text();
-                    exportTextContentToTxtFile(doctext,productName);
+//                    String doctext = Jsoup.connect(url).get().select("div[id=content]").get(0).text();
+//                    exportTextContentToTxtFile(doctext,productName);
+                    exportContentToTxtFile(url, productName);
                     count+=1;
                 }catch (Exception e){
                     e.printStackTrace();
@@ -54,6 +55,7 @@ public class ManualDownloader {
     }
 
     public static void exportTextContentToTxtFile(String text,String product) throws IOException {
+        Files.createDirectories(Paths.get("./output/documentation/"));
         File directory = new File(DOCUMENTATION_DIR);
         if (! directory.exists()){
             directory.mkdir();
@@ -63,7 +65,8 @@ public class ManualDownloader {
         out.close();
     }
 
-    public static void exportContentToTxtFile(String manualUrl,String product){
+    public static void exportContentToTxtFile(String manualUrl,String product) throws IOException {
+        Files.createDirectories(Paths.get("./output/documentation/"));
         File directory = new File(DOCUMENTATION_DIR);
         if (! directory.exists()){
             directory.mkdir();
@@ -71,7 +74,7 @@ public class ManualDownloader {
         InputStream inputStream = null;
         try {
             inputStream = new URL(manualUrl).openStream();
-            Files.copy(inputStream, Paths.get(DOCUMENTATION_DIR+product+".txt"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(inputStream, Paths.get(DOCUMENTATION_DIR+product+".pdf"), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             e.printStackTrace();
         }

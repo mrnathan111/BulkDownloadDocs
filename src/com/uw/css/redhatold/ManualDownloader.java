@@ -1,5 +1,7 @@
-package com.uw.css.intel;
+package com.uw.css.redhatold;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -12,8 +14,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 public class ManualDownloader {
-    public static String BASE_URL="https://www.intel.com/content/www/us/en/products/overview.html";
-    public static String DOCUMENTATION_DIR="./output/documentation/intel/";
+    public static String BASE_URL="https://access.redhat.com";
+    public static String DOCUMENTATION_DIR="./output/documentation/redhatold/";
 
     public static void main(String[] args) {
         getPackagesList();
@@ -23,32 +25,36 @@ public class ManualDownloader {
         Document doc;
         Integer count = 0;
         Integer failed = 0;
-        try {
-            doc = Jsoup.connect(BASE_URL).get();
-            //https://www.intel.com/content/www/us/en/products/docs/processors/xeon/3rd-gen-xeon-scalable-processors-brief.html
-            //Get Document object after parsing the html from given url.
-//            String command = "curl -L \"https://software.intel.com/content/www/us/en/develop/tools/documentation-library.html?query=&currentPage=1&externalFilter=guid:etm-74fc3401b6764c42ad8255f4feb9bd9e|guid:etm-3161d113daab4df0985c14e38d1e88be;\"";
-//            post2Parse(command);
-//            doc = Jsoup.connect(BASE_URL+"/Software").get();
-//            Elements elements = doc.select("div[class=searchresults] a");
-//            for(Element element: elements){
-//                try{
-//                    String url = element.attr("href");
-//                    String productName = sanitizeProductName(element.text());
-//                    System.out.println("*****"+productName+"*****");
-//                    String doctext = Jsoup.connect(BASE_URL+url).get().select("div[id=content]").get(0).text();
-//                    exportTextContentToTxtFile(doctext,productName);
-//                    count+=1;
-//                }catch (Exception e){
-//                    e.printStackTrace();
-//                    failed+=1;
-//                }
+            try {
+                doc = Jsoup.connect(BASE_URL+"/products/").get();
+                Elements elements = doc.select("a[class=\"product-docs\"]");
+                for (Element element: elements) {
+                        try{
+                            String url = element.attr("href");
+                            if(!url.startsWith("http")){
+                                url = BASE_URL+url;
+                            }
+                            InputStream jsoninput = new URL( url).openStream();
+                            Reader reader = new InputStreamReader(jsoninput, "UTF-8");
+                            JsonObject productDoc = new Gson().fromJson(reader, JsonObject.class);
+                            String productName = sanitizeProductName(productDoc.get("name").getAsString());
+                            System.out.println("*****"+productName+"*****");
+                            String doctext = productDoc.get("description").getAsString();
+                            doctext += Jsoup.connect(productDoc.get("homepage").getAsString()).get().text();
 
-//            }
+                            exportTextContentToTxtFile(doctext,productName);
+                            count+=1;
+                        }catch (Exception e){
+                            e.printStackTrace();
+                            failed+=1;
+                        }
+                }
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+
         System.out.println("Downloaded "+count);
         System.out.println("Failed "+failed);
     }
